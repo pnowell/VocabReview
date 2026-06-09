@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vocabulary Review</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            future: {
+                hoverOnlyWhenSupported: true,
+            }
+        }
+    </script>
+    <style>
+        body {
+            overscroll-behavior: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 h-screen w-screen flex flex-col items-center py-8 font-sans overflow-hidden select-none">
+
+    <!-- Confetti Overlay Canvas -->
+    <canvas id="confetti-canvas" class="fixed inset-0 w-screen h-screen pointer-events-none z-50 bg-transparent"></canvas>
+
+    <!-- Main View -->
+    <div id="main-view" class="w-full max-w-md px-4 flex flex-col items-center h-full">
+        <!-- Definition Banner -->
+        <div class="bg-white rounded-2xl pt-4 pb-4 px-5 mb-4 w-full flex flex-col relative shadow-sm border border-gray-100">
+            <div class="flex justify-between items-center w-full mb-2">
+                <div class="w-10"></div> <!-- Spacer for balance -->
+                <span class="text-xs text-indigo-500 uppercase tracking-widest font-extrabold text-center">Definition</span>
+                <div class="flex items-center -mr-2">
+                    <button id="mute-btn"
+                        class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
+                    </button>
+                    <button id="settings-btn"
+                        class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z">
+                            </path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="min-h-[72px] flex flex-col justify-center items-center w-full text-center px-2">
+                <h2 id="prompt-meaning" class="text-xl font-bold text-gray-800 leading-snug">Loading vocab data...</h2>
+            </div>
+        </div>
+
+        <!-- Sentence Card -->
+        <div class="w-full bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-center min-h-[120px] mb-6">
+            <p id="sentence-area" class="text-lg text-gray-700 text-center font-medium leading-relaxed">
+                Loading sentence...
+            </p>
+        </div>
+
+        <!-- Multiple Choice Options -->
+        <div id="choices-container" class="w-full flex flex-col space-y-3 mb-6">
+            <!-- Dynamically populated buttons -->
+        </div>
+
+        <!-- Progress / Controls -->
+        <div class="flex justify-end items-center w-full mt-auto mb-4 px-2">
+            <div id="next-btn-container" class="hidden">
+                <button id="next-btn"
+                    class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all transform active:scale-95 flex items-center space-x-1.5 cursor-pointer">
+                    <span>Next Word</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="message-area"
+            class="text-indigo-600 font-bold h-6 transition-opacity duration-300 opacity-0 text-center">
+            Message Area
+        </div>
+    </div>
+
+    <!-- Settings View -->
+    <div id="settings-view" class="w-full max-w-md px-4 flex flex-col hidden h-full max-h-screen overflow-hidden pb-8">
+        <div class="flex justify-between items-center mb-4 mt-2">
+            <h2 id="settings-title" class="text-2xl font-bold text-gray-800">Select Vocabulary</h2>
+            <div id="search-container" class="hidden flex-1 items-center bg-gray-200 rounded-full px-3 py-1.5 mr-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="text-gray-500 mr-2 flex-shrink-0">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="search-input" class="bg-transparent outline-none w-full text-gray-700 select-text"
+                    placeholder="Search words or definitions...">
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="daily-study-btn"
+                    class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-full hover:bg-indigo-700 transition-colors shadow-sm flex-shrink-0 cursor-pointer">
+                    DAILY STUDY
+                </button>
+                <button id="search-toggle-btn"
+                    class="p-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
+                <button id="close-settings-btn"
+                    class="p-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition-colors cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div id="vocab-list-container" class="flex-1 overflow-y-scroll bg-white rounded-xl shadow-sm p-4 space-y-4">
+            <!-- Dynamically populated -->
+        </div>
+    </div>
+
+    <script>
+        // --- STATE & DATA ---
+        let VOCAB_DATABASE = [];
+        let userSelectedWords = new Set();
+        let wordIntervals = {};
+        let reviewQueue = [];
+        let currentWordData = null;
+        let multipleChoices = [];
+        let hasAnswered = false;
+        let deckNeedsReinit = false;
+
+        let storageAvailable = false;
+        try {
+            const testKey = '__storage_test__';
+            window.localStorage.setItem(testKey, testKey);
+            window.localStorage.removeItem(testKey);
+            storageAvailable = true;
+        } catch (e) {
+            console.warn("Local storage unavailable. Settings will not persist.");
+            storageAvailable = false;
+        }
+
+        let isMuted = false;
+        if (storageAvailable) {
+            isMuted = localStorage.getItem('isMuted') === 'true';
+        }
+
+        // --- CONSTANTS ---
+        const MIN_DISTANCE = 4;
+        const MAX_DISTANCE = 512;
+
+        // --- CONFETTI SYSTEM STATE ---
+        const confettiCanvas = document.getElementById('confetti-canvas');
+        const confettiCtx = confettiCanvas.getContext('2d');
+        let confettiParticles = [];
+        let isSuccessAnimating = false;
+        let successStartTime = 0;
+
+        // --- DOM Elements ---
+        const mainView = document.getElementById('main-view');
+        const settingsView = document.getElementById('settings-view');
+        const promptMeaning = document.getElementById('prompt-meaning');
+        const sentenceArea = document.getElementById('sentence-area');
+        const choicesContainer = document.getElementById('choices-container');
+        const nextBtnContainer = document.getElementById('next-btn-container');
+        const nextBtn = document.getElementById('next-btn');
+        const messageArea = document.getElementById('message-area');
+
+        // --- AUDIO ---
+        let audioCtx;
+
+        function updateMuteUI() {
+            const muteBtn = document.getElementById('mute-btn');
+            if (isMuted) {
+                muteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2V15H6L11 19V5Z"></path><line x1="22" y1="9" x2="16" y2="15"></line><line x1="16" y1="9" x2="22" y2="15"></line></svg>`;
+            } else {
+                muteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+            }
+        }
+
+        function playErrorBeep() {
+            if (isMuted) return;
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.2);
+        }
+
+        function playSuccessChime() {
+            if (isMuted) return;
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.3);
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.5);
+        }
+
+        function playPartyPopper() {
+            if (isMuted) return;
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+
+            const bufferSize = audioCtx.sampleRate * 0.5;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const noiseFilter = audioCtx.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+            noiseFilter.frequency.value = 5000;
+            const noiseGain = audioCtx.createGain();
+            noiseGain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+            noise.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(audioCtx.destination);
+            noise.start();
+        }
+
+        // --- SIZING ---
+        function resizeConfettiCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            confettiCanvas.width = window.innerWidth * dpr;
+            confettiCanvas.height = window.innerHeight * dpr;
+            confettiCtx.scale(dpr, dpr);
+            confettiCanvas.style.width = `${window.innerWidth}px`;
+            confettiCanvas.style.height = `${window.innerHeight}px`;
+        }
+
+        window.addEventListener('resize', resizeConfettiCanvas);
+
+        // --- MATH & UTILS ---
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        const getMasteryPercent = (interval) => {
+            if (!interval) return 0;
+            const levelsAchieved = Math.log2(interval / MIN_DISTANCE);
+            const maxLevels = Math.log2(MAX_DISTANCE / MIN_DISTANCE);
+            let percent = (levelsAchieved / maxLevels) * 100;
+            return Math.max(0, Math.min(100, percent));
+        };
+
+        const getMasteryColor = (percent) => {
+            if (percent < 50) {
+                const hue = (percent / 50) * 60;
+                return `hsl(${hue}, 100%, 45%)`;
+            } else {
+                const hue = 60 + ((percent - 50) / 50) * 60;
+                return `hsl(${hue}, 100%, 40%)`;
+            }
+        };
+
+        // --- CSV LOADING AND INITIALIZATION ---
+        async function initApp() {
+            resizeConfettiCanvas();
+            updateMuteUI();
+
+            try {
+                const response = await fetch('vocab.csv');
+                if (!response.ok) throw new Error("Failed to fetch vocab.csv");
+                const text = await response.text();
+                parseVocabCSV(text);
+            } catch (err) {
+                console.error(err);
+                promptMeaning.textContent = "Error loading vocabulary data!";
+            }
+
+            requestAnimationFrame(renderLoop);
+        }
+
+        function parseVocabCSV(csvText) {
+            const lines = csvText.split('\n');
+            const database = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                const parts = line.split('|');
+                if (parts.length < 3) continue;
+                
+                const word = parts[0].trim();
+                const definition = parts[1].trim();
+                const sentence = parts[2].trim();
+                const lesson = parts[3] ? parseInt(parts[3].trim(), 10) : Math.floor(database.length / 10) + 1;
+                const id = `${word}_l${lesson}`;
+
+                database.push({ id, word, definition, sentence, lesson });
+            }
+            VOCAB_DATABASE = database;
+
+            // Load saved settings or select all by default
+            userSelectedWords = new Set(VOCAB_DATABASE.map(w => w.id));
+            if (storageAvailable) {
+                const savedPrefs = localStorage.getItem('vocabSelectionPrefs');
+                if (savedPrefs) {
+                    try {
+                        const parsed = JSON.parse(savedPrefs);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            const existing = new Set(VOCAB_DATABASE.map(w => w.id));
+                            userSelectedWords = new Set(parsed.filter(w => existing.has(w)));
+                        }
+                    } catch (e) { console.error("Failed to parse saved settings.", e); }
+                }
+
+                const savedIntervals = localStorage.getItem('vocabIntervalsPrefs');
+                if (savedIntervals) {
+                    try { wordIntervals = JSON.parse(savedIntervals); }
+                    catch (e) { console.error("Failed to parse saved intervals.", e); }
+                }
+            }
+
+            renderSettings();
+            loadNextWord();
+        }
+
+        // --- GAME LOOP & INTERACTIVE FLOW ---
+        function loadNextWord() {
+            if (userSelectedWords.size === 0) {
+                promptMeaning.textContent = "No Words Selected";
+                sentenceArea.innerHTML = `<span class="italic text-gray-400">Open settings using the gear icon above and select sections to study.</span>`;
+                choicesContainer.innerHTML = '';
+                nextBtnContainer.classList.add('hidden');
+                return;
+            }
+
+            if (reviewQueue.length === 0) {
+                reviewQueue = shuffleArray(Array.from(userSelectedWords));
+            }
+
+            const nextWordId = reviewQueue.pop();
+            const data = VOCAB_DATABASE.find(w => w.id === nextWordId);
+            if (!data) {
+                loadNextWord(); // Fallback if word not found
+                return;
+            }
+
+            currentWordData = data;
+            hasAnswered = false;
+            nextBtnContainer.classList.add('hidden');
+
+            generateChoices();
+            renderQuestion();
+        }
+
+        function generateChoices() {
+            const correctWord = currentWordData.word;
+            
+            // Generate list of active selected word IDs, sorted by closeness to top of deck
+            const activeSelectedIds = Array.from(userSelectedWords);
+            activeSelectedIds.sort((a, b) => {
+                const idxA = reviewQueue.lastIndexOf(a);
+                const idxB = reviewQueue.lastIndexOf(b);
+                return idxB - idxA;
+            });
+
+            // Map IDs back to unique word strings (ignoring duplicates)
+            const activeSelectedWords = activeSelectedIds.map(id => {
+                const item = VOCAB_DATABASE.find(w => w.id === id);
+                return item ? item.word : '';
+            }).filter(w => w !== '' && w !== correctWord);
+
+            let candidates = Array.from(new Set(activeSelectedWords));
+
+            const distractors = [];
+            // Pick distractors favoring the top of the deck using a quadratic distribution
+            while (distractors.length < 3 && candidates.length > 0) {
+                const idx = Math.floor(Math.pow(Math.random(), 2) * candidates.length);
+                distractors.push(candidates[idx]);
+                candidates.splice(idx, 1);
+            }
+
+            // Backfill from entire database if there are not enough selected distractors
+            if (distractors.length < 3) {
+                const backfillCandidates = Array.from(new Set(VOCAB_DATABASE.map(w => w.word))).filter(
+                    w => w !== correctWord && !distractors.includes(w)
+                );
+                shuffleArray(backfillCandidates);
+                while (distractors.length < 3 && backfillCandidates.length > 0) {
+                    distractors.push(backfillCandidates.pop());
+                }
+            }
+
+            multipleChoices = [correctWord, ...distractors];
+            shuffleArray(multipleChoices);
+        }
+
+        function renderQuestion() {
+            const correctWord = currentWordData.word;
+            
+            // Sentence representation with text-transparent span to ensure zero layout shifting
+            const sentenceParts = currentWordData.sentence.split('_____');
+            sentenceArea.innerHTML = '';
+            
+            if (sentenceParts.length > 1) {
+                sentenceArea.appendChild(document.createTextNode(sentenceParts[0]));
+                
+                const blankSpan = document.createElement('span');
+                blankSpan.id = 'sentence-blank';
+                // Text-transparent makes text occupy width but remain invisible.
+                // Border-bottom acts as the blank line.
+                blankSpan.className = 'border-b-2 border-gray-400 font-bold text-transparent select-none px-1 transition-all duration-300 mx-1 inline-block';
+                blankSpan.textContent = correctWord;
+                sentenceArea.appendChild(blankSpan);
+                
+                sentenceArea.appendChild(document.createTextNode(sentenceParts[1]));
+            } else {
+                sentenceArea.textContent = currentWordData.sentence;
+            }
+
+            promptMeaning.textContent = currentWordData.definition;
+
+            choicesContainer.innerHTML = '';
+            multipleChoices.forEach((choice, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn w-full bg-white border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300 rounded-xl p-4 text-left font-semibold text-gray-700 shadow-sm transition-all flex items-center cursor-pointer';
+                btn.dataset.word = choice;
+
+                const keyBadge = document.createElement('span');
+                keyBadge.className = 'choice-badge w-6 h-6 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs font-bold mr-3 flex-shrink-0 transition-colors';
+                keyBadge.textContent = String.fromCharCode(65 + idx); // A, B, C, D
+
+                const wordText = document.createElement('span');
+                wordText.className = 'flex-1';
+                wordText.textContent = choice;
+
+                btn.appendChild(keyBadge);
+                btn.appendChild(wordText);
+                btn.addEventListener('click', () => handleChoice(choice, btn));
+
+                choicesContainer.appendChild(btn);
+            });
+        }
+
+        function handleChoice(selectedWord, selectedBtn) {
+            if (hasAnswered) return;
+            hasAnswered = true;
+
+            const correctWord = currentWordData.word;
+            const isCorrect = (selectedWord === correctWord);
+
+            // 1. Reveal blank in green with zero layout shift
+            const blankSpan = document.getElementById('sentence-blank');
+            if (blankSpan) {
+                blankSpan.classList.remove('text-transparent', 'border-gray-400');
+                blankSpan.classList.add('text-emerald-600', 'border-emerald-500');
+            }
+
+            // 2. Adjust correctness formatting for multiple choices
+            const buttons = document.querySelectorAll('.choice-btn');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.remove('hover:bg-gray-50', 'hover:border-gray-300', 'cursor-pointer');
+                
+                const btnWord = btn.dataset.word;
+                const badge = btn.querySelector('.choice-badge');
+
+                if (btnWord === correctWord) {
+                    btn.classList.remove('border-gray-200');
+                    btn.classList.add('bg-emerald-50', 'border-emerald-500', 'text-emerald-700');
+                    if (badge) {
+                        badge.classList.remove('bg-gray-100', 'text-gray-500');
+                        badge.classList.add('bg-emerald-500', 'text-white');
+                    }
+                } else if (btnWord === selectedWord && !isCorrect) {
+                    btn.classList.remove('border-gray-200');
+                    btn.classList.add('bg-red-50', 'border-red-500', 'text-red-700');
+                    if (badge) {
+                        badge.classList.remove('bg-gray-100', 'text-gray-500');
+                        badge.classList.add('bg-red-500', 'text-white');
+                    }
+                } else {
+                    btn.classList.add('opacity-50', 'border-gray-200');
+                }
+            });
+
+            // 3. Spaced Repetition queue handling
+            recordWordResult(currentWordData.id, isCorrect);
+
+            // 4. Play audio and visual feedback
+            if (isCorrect) {
+                playSuccessChime();
+                triggerConfetti();
+            } else {
+                playErrorBeep();
+            }
+
+            nextBtnContainer.classList.remove('hidden');
+        }
+
+        function recordWordResult(id, passed) {
+            if (!wordIntervals[id]) {
+                wordIntervals[id] = MIN_DISTANCE;
+            }
+
+            if (!passed) {
+                wordIntervals[id] = Math.max(MIN_DISTANCE, Math.floor(wordIntervals[id] * 0.3));
+            } else {
+                wordIntervals[id] = Math.min(MAX_DISTANCE, Math.floor(wordIntervals[id] * 2.0));
+            }
+
+            if (storageAvailable) {
+                localStorage.setItem('vocabIntervalsPrefs', JSON.stringify(wordIntervals));
+            }
+
+            // Splice back into review queue based on new interval
+            if (userSelectedWords.has(id)) {
+                let insertDist = wordIntervals[id];
+                let spliceIndex = Math.max(0, reviewQueue.length - insertDist);
+                reviewQueue.splice(spliceIndex, 0, id);
+            }
+        }
+
+        nextBtn.addEventListener('click', () => {
+            loadNextWord();
+        });
+
+        // --- CONFETTI ANIMATION LOOP ---
+        function triggerConfetti() {
+            playPartyPopper();
+            confettiParticles = [];
+            const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+            
+            // Shot from bottom-left corner
+            for (let i = 0; i < 40; i++) {
+                confettiParticles.push({
+                    x: 0,
+                    y: window.innerHeight,
+                    vx: Math.random() * 10 + 4,
+                    vy: -(Math.random() * 15 + 10),
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: Math.random() * 8 + 4,
+                    life: 1.0,
+                    decay: Math.random() * 0.01 + 0.008
+                });
+            }
+
+            // Shot from bottom-right corner
+            for (let i = 0; i < 40; i++) {
+                confettiParticles.push({
+                    x: window.innerWidth,
+                    y: window.innerHeight,
+                    vx: -(Math.random() * 10 + 4),
+                    vy: -(Math.random() * 15 + 10),
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: Math.random() * 8 + 4,
+                    life: 1.0,
+                    decay: Math.random() * 0.01 + 0.008
+                });
+            }
+
+            isSuccessAnimating = true;
+            successStartTime = performance.now();
+        }
+
+        function renderLoop() {
+            confettiCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+            if (isSuccessAnimating) {
+                let activeParticles = 0;
+                confettiParticles.forEach(p => {
+                    p.vx *= 0.98;
+                    p.vy *= 0.98;
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.25; // gravity
+                    p.life -= p.decay;
+                    
+                    if (p.life > 0) {
+                        activeParticles++;
+                        confettiCtx.globalAlpha = Math.max(p.life, 0);
+                        confettiCtx.fillStyle = p.color;
+                        confettiCtx.beginPath();
+                        confettiCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        confettiCtx.fill();
+                    }
+                });
+                confettiCtx.globalAlpha = 1.0;
+
+                if (activeParticles === 0) {
+                    isSuccessAnimating = false;
+                }
+            }
+
+            requestAnimationFrame(renderLoop);
+        }
+
+        // --- SETTINGS ACCORDION RENDERER ---
+        let vocabDomElements = {};
+
+        function renderSettings() {
+            vocabDomElements = {};
+            const container = document.getElementById('vocab-list-container');
+            container.innerHTML = '';
+
+            const lessons = {};
+            VOCAB_DATABASE.forEach(w => {
+                if (!lessons[w.lesson]) lessons[w.lesson] = [];
+                lessons[w.lesson].push(w);
+            });
+
+            Object.keys(lessons).sort((a, b) => parseInt(a, 10) - parseInt(b, 10)).forEach(lesson => {
+                let totalLessonPercent = 0;
+                const numWordsInLesson = lessons[lesson].length;
+
+                lessons[lesson].forEach(data => {
+                    const interval = wordIntervals[data.id] || MIN_DISTANCE;
+                    totalLessonPercent += getMasteryPercent(interval);
+                });
+
+                const lessonPercent = numWordsInLesson > 0 ? totalLessonPercent / numWordsInLesson : 0;
+                const lessonColor = getMasteryColor(lessonPercent);
+
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'mb-4';
+
+                const headerFade = lessonPercent >= 100 ? 0 : 6;
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'group flex mb-2 bg-indigo-100 hover:bg-indigo-200 rounded-lg transition-colors overflow-hidden';
+                headerDiv.style.backgroundImage = `linear-gradient(to right, ${lessonColor} max(0%, calc(${lessonPercent}% - ${headerFade}px)), transparent ${lessonPercent}%)`;
+                headerDiv.style.backgroundSize = '100% 4px';
+                headerDiv.style.backgroundRepeat = 'no-repeat';
+                headerDiv.style.backgroundPosition = 'bottom left';
+
+                const cbWrapper = document.createElement('label');
+                cbWrapper.className = 'flex items-center pl-3 py-3 pr-2 cursor-pointer h-full';
+
+                const groupCb = document.createElement('input');
+                groupCb.type = 'checkbox';
+                groupCb.id = `group-cb-${lesson}`;
+                groupCb.className = 'w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 mr-3 cursor-pointer flex-shrink-0';
+
+                const headerLabelText = document.createElement('span');
+                headerLabelText.className = 'text-lg font-bold text-gray-700 select-none whitespace-nowrap flex-shrink-0';
+                headerLabelText.textContent = `Lesson ${lesson}`;
+
+                cbWrapper.appendChild(groupCb);
+                cbWrapper.appendChild(headerLabelText);
+
+                const toggleArea = document.createElement('div');
+                toggleArea.className = 'flex-1 flex items-center pr-3 py-3 pl-1 overflow-hidden cursor-pointer h-full';
+
+                const wordListPreview = document.createElement('div');
+                wordListPreview.className = 'flex-1 overflow-hidden mr-2 text-sm text-gray-500 whitespace-nowrap pointer-events-none';
+                wordListPreview.style.webkitMaskImage = 'linear-gradient(to right, black 70%, transparent 100%)';
+                wordListPreview.style.maskImage = 'linear-gradient(to right, black 70%, transparent 100%)';
+                wordListPreview.textContent = `(${lessons[lesson].map(w => w.word).join(', ')})`;
+
+                const toggleBtn = document.createElement('button');
+                toggleBtn.className = 'ml-auto text-gray-400 group-hover:text-gray-600 transition-transform flex-shrink-0 pointer-events-none';
+                toggleBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+
+                toggleArea.appendChild(wordListPreview);
+                toggleArea.appendChild(toggleBtn);
+
+                headerDiv.appendChild(cbWrapper);
+                headerDiv.appendChild(toggleArea);
+                groupDiv.appendChild(headerDiv);
+
+                const gridDiv = document.createElement('div');
+                gridDiv.className = 'grid grid-cols-1 gap-2 pl-2 mt-3 hidden';
+
+                let isExpanded = false;
+                function toggleLesson() {
+                    isExpanded = !isExpanded;
+                    if (isExpanded) {
+                        gridDiv.classList.remove('hidden');
+                        wordListPreview.classList.add('hidden');
+                        toggleBtn.style.transform = 'rotate(180deg)';
+                    } else {
+                        gridDiv.classList.add('hidden');
+                        wordListPreview.classList.remove('hidden');
+                        toggleBtn.style.transform = 'rotate(0deg)';
+                    }
+                }
+
+                toggleArea.addEventListener('click', toggleLesson);
+
+                lessons[lesson].forEach(data => {
+                    const interval = wordIntervals[data.id] || MIN_DISTANCE;
+                    const percent = getMasteryPercent(interval);
+                    const color = getMasteryColor(percent);
+
+                    const itemFade = percent >= 100 ? 0 : 6;
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'flex items-center p-1 rounded-md transition-colors';
+                    itemDiv.style.backgroundImage = `linear-gradient(to right, ${color} max(0%, calc(${percent}% - ${itemFade}px)), transparent ${percent}%)`;
+                    itemDiv.style.backgroundSize = '100% 3px';
+                    itemDiv.style.backgroundRepeat = 'no-repeat';
+                    itemDiv.style.backgroundPosition = 'bottom left';
+
+                    const itemCb = document.createElement('input');
+                    itemCb.type = 'checkbox';
+                    itemCb.id = `word-cb-${data.id}`;
+                    itemCb.className = `item-cb-${lesson} w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 mr-2 cursor-pointer flex-shrink-0`;
+                    itemCb.checked = userSelectedWords.has(data.id);
+                    itemCb.dataset.id = data.id;
+
+                    const itemLabel = document.createElement('div');
+                    itemLabel.className = 'flex-1 text-gray-600 cursor-pointer select-none py-1.5 text-sm leading-tight';
+                    itemLabel.textContent = `${data.word} - ${data.definition}`;
+                    
+                    // Toggle checkbox on label click
+                    itemLabel.addEventListener('click', () => {
+                        itemCb.checked = !itemCb.checked;
+                        itemCb.dispatchEvent(new Event('change'));
+                    });
+
+                    itemDiv.appendChild(itemCb);
+                    itemDiv.appendChild(itemLabel);
+                    gridDiv.appendChild(itemDiv);
+
+                    vocabDomElements[data.id] = {
+                        itemDiv: itemDiv,
+                        expandLesson: () => {
+                            if (!isExpanded) toggleLesson();
+                        }
+                    };
+
+                    itemCb.addEventListener('change', (e) => {
+                        if (e.target.checked) userSelectedWords.add(data.id);
+                        else userSelectedWords.delete(data.id);
+                        updateGroupCheckboxState(lesson);
+                        deckNeedsReinit = true;
+                        if (storageAvailable) {
+                            localStorage.setItem('vocabSelectionPrefs', JSON.stringify(Array.from(userSelectedWords)));
+                        }
+                    });
+                });
+
+                groupDiv.appendChild(gridDiv);
+                container.appendChild(groupDiv);
+
+                groupCb.addEventListener('change', (e) => {
+                    const isChecked = e.target.checked;
+                    const childCbs = gridDiv.querySelectorAll(`.item-cb-${lesson}`);
+                    childCbs.forEach(cb => {
+                        cb.checked = isChecked;
+                        if (isChecked) userSelectedWords.add(cb.dataset.id);
+                        else userSelectedWords.delete(cb.dataset.id);
+                    });
+                    deckNeedsReinit = true;
+                    if (storageAvailable) {
+                        localStorage.setItem('vocabSelectionPrefs', JSON.stringify(Array.from(userSelectedWords)));
+                    }
+                });
+
+                updateGroupCheckboxState(lesson);
+            });
+        }
+
+        function updateGroupCheckboxState(lesson) {
+            const groupCb = document.getElementById(`group-cb-${lesson}`);
+            const childCbs = document.querySelectorAll(`.item-cb-${lesson}`);
+            if (!groupCb || childCbs.length === 0) return;
+            const allChecked = Array.from(childCbs).every(cb => cb.checked);
+            const someChecked = Array.from(childCbs).some(cb => cb.checked);
+            groupCb.checked = allChecked;
+            groupCb.indeterminate = someChecked && !allChecked;
+        }
+
+        function showMessage(msg) {
+            messageArea.textContent = msg;
+            messageArea.classList.remove('opacity-0');
+            setTimeout(() => messageArea.classList.add('opacity-0'), 2500);
+        }
+
+        // --- SEARCH LOGIC ---
+        let isSearchActive = false;
+        const searchToggleBtn = document.getElementById('search-toggle-btn');
+        const searchContainer = document.getElementById('search-container');
+        const settingsTitle = document.getElementById('settings-title');
+        const searchInput = document.getElementById('search-input');
+
+        searchToggleBtn.addEventListener('click', () => {
+            isSearchActive = !isSearchActive;
+            if (isSearchActive) {
+                settingsTitle.classList.add('hidden');
+                searchContainer.classList.remove('hidden');
+                searchContainer.classList.add('flex');
+                searchInput.focus();
+            } else {
+                settingsTitle.classList.remove('hidden');
+                searchContainer.classList.add('hidden');
+                searchContainer.classList.remove('flex');
+                searchInput.value = '';
+                clearSearch();
+            }
+        });
+
+        searchInput.addEventListener('input', () => {
+            executeSearch(searchInput.value.trim().toLowerCase());
+        });
+
+        function clearSearch() {
+            Object.values(vocabDomElements).forEach(dom => {
+                dom.itemDiv.classList.remove('bg-yellow-100');
+            });
+        }
+
+        function executeSearch(query) {
+            clearSearch();
+            if (!query) return;
+
+            let firstMatch = null;
+            VOCAB_DATABASE.forEach(data => {
+                const dom = vocabDomElements[data.id];
+                if (!dom) return;
+
+                const matches = data.word.toLowerCase().includes(query) ||
+                                data.definition.toLowerCase().includes(query);
+
+                if (matches) {
+                    dom.itemDiv.classList.add('bg-yellow-100');
+                    dom.expandLesson();
+                    if (!firstMatch) firstMatch = dom.itemDiv;
+                }
+            });
+
+            if (firstMatch) {
+                firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // --- SETTINGS VIEW CONTROLS ---
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            renderSettings();
+            mainView.classList.add('hidden');
+            settingsView.classList.remove('hidden');
+
+            if (isSearchActive) {
+                isSearchActive = false;
+                settingsTitle.classList.remove('hidden');
+                searchContainer.classList.add('hidden');
+                searchContainer.classList.remove('flex');
+                searchInput.value = '';
+            }
+        });
+
+        document.getElementById('close-settings-btn').addEventListener('click', () => {
+            settingsView.classList.add('hidden');
+            mainView.classList.remove('hidden');
+
+            if (deckNeedsReinit) {
+                const activeId = currentWordData ? currentWordData.id : null;
+                reviewQueue = shuffleArray(Array.from(userSelectedWords).filter(id => id !== activeId));
+                deckNeedsReinit = false;
+            }
+
+            if (reviewQueue.length === 0 || userSelectedWords.size === 0 || (currentWordData && !userSelectedWords.has(currentWordData.id))) {
+                loadNextWord();
+            }
+        });
+
+        // --- DAILY STUDY MODE ---
+        document.getElementById('daily-study-btn').addEventListener('click', () => {
+            userSelectedWords.clear();
+
+            const highMastery = [];
+            const midMastery = [];
+            const lowMastery = [];
+
+            VOCAB_DATABASE.forEach(data => {
+                const interval = wordIntervals[data.id] || MIN_DISTANCE;
+                const percent = getMasteryPercent(interval);
+                if (percent >= 85) {
+                    highMastery.push(data.id);
+                } else if (percent >= 15) {
+                    midMastery.push(data.id);
+                } else {
+                    lowMastery.push(data.id);
+                }
+            });
+
+            const shuffledHigh = shuffleArray(highMastery);
+            const shuffledMid = shuffleArray(midMastery);
+
+            // 1. High Mastery (Target: 6)
+            const pickedHigh = shuffledHigh.slice(0, 6);
+            pickedHigh.forEach(id => userSelectedWords.add(id));
+            let remainder = 6 - pickedHigh.length;
+
+            // 2. Mid Mastery (Target: 12 + remainder)
+            const pickedMid = shuffledMid.slice(0, 12 + remainder);
+            pickedMid.forEach(id => userSelectedWords.add(id));
+            remainder += 12 - pickedMid.length;
+
+            // 3. Low Mastery (Target: 2, sequential order)
+            const pickedLow = lowMastery.slice(0, 2);
+            pickedLow.forEach(id => userSelectedWords.add(id));
+            remainder += 2 - pickedLow.length;
+
+            // 4. Backfill from High Mastery if still short
+            if (remainder > 0) {
+                const extraHigh = shuffledHigh.slice(pickedHigh.length, pickedHigh.length + remainder);
+                extraHigh.forEach(id => userSelectedWords.add(id));
+            }
+
+            renderSettings();
+            deckNeedsReinit = true;
+            if (storageAvailable) {
+                localStorage.setItem('vocabSelectionPrefs', JSON.stringify(Array.from(userSelectedWords)));
+            }
+
+            showMessage("Daily Study mode activated!");
+        });
+
+        // --- MUTE TOGGLE ---
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            isMuted = !isMuted;
+            updateMuteUI();
+            if (storageAvailable) {
+                localStorage.setItem('isMuted', isMuted);
+            }
+        });
+
+        // --- KEYBOARD SHORTCUTS ---
+        window.addEventListener('keydown', (e) => {
+            // Ignore key events if Settings view is open or search bar is typing
+            if (!settingsView.classList.contains('hidden') || document.activeElement === searchInput) {
+                return;
+            }
+
+            if (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4') {
+                const index = parseInt(e.key, 10) - 1;
+                const buttons = document.querySelectorAll('.choice-btn');
+                if (buttons[index] && !buttons[index].disabled) {
+                    buttons[index].click();
+                }
+            } else if (e.key === 'Enter' || e.key === ' ') {
+                if (!nextBtnContainer.classList.contains('hidden')) {
+                    e.preventDefault();
+                    nextBtn.click();
+                }
+            }
+        });
+
+        // --- STARTUP ---
+        initApp();
+    </script>
+</body>
+
+</html>
